@@ -3,6 +3,7 @@ from io import StringIO
 import re
 import pandas as pd
 from sklearn.model_selection import train_test_split
+from next_token_dataset import tokenizer
 
 
 # функция для "чистки" текстов
@@ -33,6 +34,14 @@ df['data'] = df['data'].apply(clean_string)
 
 # Сохранение обработанного датасета
 df[['data']].to_csv('data/dataset_processed.csv', index=False)
+
+def count_tokens(text):
+    return len(tokenizer.encode(text, add_special_tokens=True))
+
+token_lengths = df['data'].apply(count_tokens)
+print(f"Минимальная длина в токенах: {token_lengths.min()}")
+print(f"Средняя длина в токенах: {token_lengths.mean():.2f}")
+print(f"Максимальная длина в токенах: {token_lengths.max()}")
 
 # Разбиваем датасет на обучающую, валидационную и тестовую выборки:
 # трейн: 80%,

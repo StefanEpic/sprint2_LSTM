@@ -3,7 +3,7 @@ from torch import nn
 
 
 class LSTMModel(nn.Module):
-    def __init__(self, vocab_size, hidden_dim=128, num_layers=2, dropout=0.5):
+    def __init__(self, vocab_size, hidden_dim=64, num_layers=2, dropout=0.5):
         super().__init__()
         self.hidden_dim = hidden_dim
         self.num_layers = num_layers
@@ -20,14 +20,15 @@ class LSTMModel(nn.Module):
         
         self.init_weights()
 
-    def forward(self, x):
+    def forward(self, x, hidden=None):
+        """Прямой проход."""
         emb = self.embedding(x)  
         lstm_out, hidden = self.lstm(emb, hidden)  
         output = self.fc(lstm_out)
         return output, hidden
 
     def init_weights(self):
-        # Инициализация embedding
+        """Инициализация embedding."""
         nn.init.xavier_uniform_(self.embedding.weight)
         
         # Инициализация LSTM
@@ -44,3 +45,41 @@ class LSTMModel(nn.Module):
         nn.init.xavier_uniform_(self.fc.weight)
         if self.fc.bias is not None:
             nn.init.zeros_(self.fc.bias)
+    
+    def generate(self, input_ids, max_length=64, temperature=1.0, eos_token_id=None):
+        """Генерация продолжения текста."""
+        self.eval()
+        
+        # input_ids должен иметь размерность [batch_size, seq_len]
+        if input_ids.dim() == 1:
+            input_ids = input_ids.unsqueeze(0)  # Добавляем batch dimension если нужно
+        
+        batch_size = input_ids.size(0)
+        with torch.no_grad():
+                # Получаем hidden state из входной последовательности
+                emb = self.embedding(input_ids)
+                _, hidden = self.lstm(emb)
+                
+                last_token = input_ids[:, -1:]
+                generated = input_ids.clone()
+                
+                for _ in range(max_length):
+                    emb = self.embedding(last_token)
+                    lstm_out, hidden = self.lstm(emb, hidden)
+                    output = self.fc(lstm_out.squeeze(1))
+                    
+                    # Применяем температуру и сэмплируем
+                    output = output / temperature
+                    probabilities = torch.softmax(output, dim=-1)
+                    next_token = torch.multinomial(probabilities, 1)
+                    
+                    generated = torch.cat([generated, next_token], dim=1)
+                    last_token = next_token
+                    
+                    # Более гибкая проверка конца последовательности
+                    if eos_token_id is not None and (next_token == eos_token_id).all():
+                        break
+                        
+        return generated.squeeze(0) if batch_size == 1 else generated
+
+            
