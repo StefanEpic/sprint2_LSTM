@@ -5,7 +5,7 @@ from transformers import AutoTokenizer
 
 class PostsDataset(Dataset):
     def __init__(self, csv_file, tokenizer, max_length=64):
-        self.data = pd.read_csv(csv_file).head(50000)
+        self.data = pd.read_csv(csv_file)
         self.tokenizer = tokenizer
         self.max_length = max_length
         self.texts = self.data['data'].tolist()

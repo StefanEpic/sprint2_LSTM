@@ -3,7 +3,7 @@ from torch import nn
 
 
 class LSTMModel(nn.Module):
-    def __init__(self, vocab_size, hidden_dim=64, num_layers=2, dropout=0.5):
+    def __init__(self, vocab_size, hidden_dim=64, num_layers=1, dropout=0.1):
         super().__init__()
         self.hidden_dim = hidden_dim
         self.num_layers = num_layers

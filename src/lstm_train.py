@@ -14,7 +14,7 @@ def train_model(model, train_loader, val_loader, tokenizer, num_epochs=10, learn
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Работаем на {device}...")
     model.to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-5)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
     criterion = nn.CrossEntropyLoss(ignore_index=tokenizer.pad_token_id)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=2, factor=0.5)
 
@@ -82,7 +82,6 @@ def train_model(model, train_loader, val_loader, tokenizer, num_epochs=10, learn
         save_json({
             "rouge1": round(rouge_scores['rouge1'], 2),
             "rouge2": round(rouge_scores['rouge2'], 2),
-            "epoch_loss": epoch_loss,
             "avg_train_loss": avg_train_loss,
             "source": rouge_scores['etalon_text'],
             "input_text": rouge_scores['input_text'],
@@ -110,41 +109,43 @@ def save_training_model(model, save_dir="./model"):
     return save_dir
 
 
-def save_training_curves(train_losses, val_rouge_scores, save_dir="./graphics"):
+def save_training_curves(train_losses=None, val_rouge_scores=None, save_dir="./graphics"):
     """Создает и сохраняет графики обучения."""
-    # Создаем директорию если не существует
-    os.makedirs(save_dir, exist_ok=True)
+    if train_losses:
+        # График потерь
+        plt.figure(figsize=(12, 4))
 
-    # График потерь
-    plt.figure(figsize=(12, 4))
+        plt.subplot(1, 2, 1)
+        plt.plot(train_losses, 'b-', label='Train Loss')
+        plt.title('Training Loss')
+        plt.xlabel('Epoch')
+        plt.ylabel('Loss')
+        plt.legend()
+        plt.grid(True)
 
-    plt.subplot(1, 2, 1)
-    plt.plot(train_losses, 'b-', label='Train Loss')
-    plt.title('Training Loss')
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.legend()
-    plt.grid(True)
+    if val_rouge_scores:
+        # График ROUGE scores
+        plt.subplot(1, 2, 2)
+        rouge1_scores = [score['rouge1'] for score in val_rouge_scores]
+        rouge2_scores = [score['rouge2'] for score in val_rouge_scores]
 
-    # График ROUGE scores
-    plt.subplot(1, 2, 2)
-    rouge1_scores = [score['rouge1'] for score in val_rouge_scores]
-    rouge2_scores = [score['rouge2'] for score in val_rouge_scores]
+        plt.plot(rouge1_scores, 'r-', label='ROUGE-1')
+        plt.plot(rouge2_scores, 'g-', label='ROUGE-2')
+        plt.title('Validation ROUGE Scores')
+        plt.xlabel('Epoch')
+        plt.ylabel('ROUGE Score')
+        plt.legend()
+        plt.grid(True)
 
-    plt.plot(rouge1_scores, 'r-', label='ROUGE-1')
-    plt.plot(rouge2_scores, 'g-', label='ROUGE-2')
-    plt.title('Validation ROUGE Scores')
-    plt.xlabel('Epoch')
-    plt.ylabel('ROUGE Score')
-    plt.legend()
-    plt.grid(True)
+        plt.tight_layout()
 
-    plt.tight_layout()
-
-    # Сохраняем графики
-    plot_path = os.path.join(save_dir, "training_plots.png")
-    plt.savefig(plot_path, dpi=300, bbox_inches='tight')
-    plt.close()
+    if train_losses or val_rouge_scores:
+        # Создаем директорию если не существует
+        os.makedirs(save_dir, exist_ok=True)
+        # Сохраняем графики
+        plot_path = os.path.join(save_dir, "training_plots.png")
+        plt.savefig(plot_path, dpi=300, bbox_inches='tight')
+        plt.close()
 
 
 def save_json(data, save_dir="./model"):

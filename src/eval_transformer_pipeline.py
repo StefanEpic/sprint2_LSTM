@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from transformers import pipeline, AutoModelForCausalLM, AutoTokenizer
 from rouge_score import rouge_scorer
+from src.lstm_train import save_json, save_training_curves
 
 
 class BaseTransformer:
@@ -39,13 +40,9 @@ class BaseTransformer:
         # Длина генерации = общая длина - входная длина
         max_new_tokens = target_length - input_length
 
-        # Минимальная генерация - хотя бы несколько токенов
-        min_new_tokens = max(10, max_new_tokens)
-
         out = self.generator(
             text,
-            max_length=input_length + min_new_tokens,
-            max_new_tokens=min_new_tokens,
+            max_new_tokens=max_new_tokens,
             num_return_sequences=1,
             do_sample=True,
             top_p=0.95,
@@ -72,8 +69,12 @@ def run_transformer_tests():
     scorer = rouge_scorer.RougeScorer(['rouge1', 'rouge2'], use_stemmer=True)
     rouge1_scores = []
     rouge2_scores = []
+    res_dict_json = []
+    val_rouge_scores = []
 
     texts = pd.read_csv("./data/test.csv")['data'].tolist()
+    texts = [i for i in texts if isinstance(i, str)][:1000]
+    texts = [i for i in texts if len(i.split()) >= 4]
     for text in texts:
         source, expected_text = get_75_percent_words(text)
         generated_text = transformer_model.run(source)
@@ -82,16 +83,27 @@ def run_transformer_tests():
         # Вычисляем ROUGE между сгенерированным и ожидаемым продолжением
         if generated_text:  # Проверяем, что есть что сравнивать
             scores = scorer.score(expected_text, expected_generated_text)
-            rouge1_scores.append(scores['rouge1'].fmeasure)
-            rouge2_scores.append(scores['rouge2'].fmeasure)
-
-    return {
-        'rouge1': np.mean(rouge1_scores) if rouge1_scores else 0,
-        'rouge2': np.mean(rouge2_scores) if rouge2_scores else 0,
-        'etalon_text': text,
-        'input_text': source,
-        'full_generated_text': generated_text,
-        'expected_text': expected_text,
-        'expected_generated_text': expected_generated_text,
-    }
-
+            rouge1_scores.append(round(scores['rouge1'].fmeasure, 2))
+            rouge2_scores.append(round(scores['rouge2'].fmeasure, 2))
+            
+            res_dict_json.append({
+                "rouge1": round(scores['rouge1'].fmeasure, 2),
+                "rouge2": round(scores['rouge2'].fmeasure, 2),
+                "source": text,
+                "input_text": source,
+                "full_generated_text": generated_text,
+                "expected_text": expected_text,
+                "expected_generated_text": expected_generated_text,
+            })
+            val_rouge_scores.append({
+                "rouge1": round(scores['rouge1'].fmeasure, 2),
+                "rouge2": round(scores['rouge2'].fmeasure, 2),
+            })
+    dir_for_res_save = "./transformer_tests_results" 
+    save_training_curves(val_rouge_scores=val_rouge_scores, save_dir=dir_for_res_save)
+    save_json(res_dict_json, dir_for_res_save)
+    avg_rouge_1 = [i["rouge1"] for i in val_rouge_scores]
+    avg_rouge_1 = round(sum(avg_rouge_1) / len(avg_rouge_1), 2)
+    avg_rouge_2 = [i["rouge2"] for i in val_rouge_scores]
+    avg_rouge_2 = round(sum(avg_rouge_2) / len(avg_rouge_2), 2)
+    return avg_rouge_1, avg_rouge_2
