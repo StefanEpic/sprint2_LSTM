@@ -51,7 +51,7 @@ val_dataset = PostsDataset('data/val.csv', tokenizer)
 test_dataset = PostsDataset('data/test.csv', tokenizer)
 
 # Создание DataLoader
-batch_size = 64
+batch_size = 128
 
 train_loader = DataLoader(
     train_dataset,
