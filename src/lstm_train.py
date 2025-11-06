@@ -99,7 +99,7 @@ def train_model(model, train_loader, val_loader, tokenizer, num_epochs=10, learn
 
 
 def save_training_model(model, save_dir="./model"):
-    """Сохраняет модель и графики обучения."""
+    """Сохраняет модель."""
     # Создаем директорию если не существует
     os.makedirs(save_dir, exist_ok=True)
 
@@ -107,6 +107,12 @@ def save_training_model(model, save_dir="./model"):
     full_model_path = os.path.join(save_dir, "full_model.pth")
     torch.save(model, full_model_path)
     return save_dir
+
+
+def load_training_model(path_to_model):
+    """Загружает модель."""
+    model = torch.load(path_to_model, weights_only=False)
+    return model
 
 
 def save_training_curves(train_losses=None, val_rouge_scores=None, save_dir="./graphics"):

@@ -37,7 +37,6 @@ class LSTMModel(nn.Module):
                 nn.init.xavier_uniform_(param)
             elif 'bias' in name:
                 nn.init.zeros_(param)
-                # Forget gate bias = 1
                 n = param.size(0)
                 param.data[n//4:n//2].fill_(1.0)
         

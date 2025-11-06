@@ -1,4 +1,3 @@
-import numpy as np
 import pandas as pd
 from transformers import pipeline, AutoModelForCausalLM, AutoTokenizer
 from rouge_score import rouge_scorer
@@ -106,4 +105,4 @@ def run_transformer_tests():
     avg_rouge_1 = round(sum(avg_rouge_1) / len(avg_rouge_1), 2)
     avg_rouge_2 = [i["rouge2"] for i in val_rouge_scores]
     avg_rouge_2 = round(sum(avg_rouge_2) / len(avg_rouge_2), 2)
-    return avg_rouge_1, avg_rouge_2
+    return {"avg_rouge_1": avg_rouge_1, "avg_rouge_2": avg_rouge_2} 

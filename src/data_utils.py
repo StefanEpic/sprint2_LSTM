@@ -1,5 +1,4 @@
 import requests
-from io import StringIO
 import re
 import pandas as pd
 from sklearn.model_selection import train_test_split

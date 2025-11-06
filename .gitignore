@@ -4,3 +4,4 @@ __pycache__/
 model/
 train/
 transformer_tests_results/
+graphics/
